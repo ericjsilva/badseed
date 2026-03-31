@@ -1,41 +1,46 @@
 {
-    "default_paths": [
-        "~/dev",
-        "~/Projects",
-        "~/repos",
-        "~/workspace",
-        "~/src",
-        "~/Documents",
-        "~/Desktop",
-        "~/Downloads"
-    ],
-    "system_paths": [
-        "/usr/local/lib/node_modules",
-        "/opt/homebrew/lib/node_modules",
-        "/opt/homebrew/Cellar",
-        "/usr/local/Cellar",
-        "~/.local/lib/python*/site-packages",
-        "/opt/homebrew/lib/python*/site-packages",
-        "/usr/local/lib/python*/site-packages",
-        "/Library/Frameworks/Python.framework",
-        "~/Library/Python/*/lib/python/site-packages",
-        "~/.pyenv/versions/*/lib/python*/site-packages",
+    "user_paths": [
+        "~/.bun/install/global",
         "~/.conda/envs/*/lib/python*/site-packages",
-        "~/miniconda3/lib/python*/site-packages",
-        "~/anaconda3/lib/python*/site-packages",
+        "~/.local/lib/python*/site-packages",
         "~/.npm",
         "~/.nvm/versions/node/*/lib/node_modules",
-        "~/.volta/tools/image/node/*/lib/node_modules",
         "~/.pnpm-store",
-        "~/.bun/install/global",
-        "~/Library/pnpm/global"
+        "~/.pyenv/versions/*/lib/python*/site-packages",
+        "~/.volta/tools/image/node/*/lib/node_modules",
+        "~/Desktop",
+        "~/Documents",
+        "~/Downloads",
+        "~/Library/Python/*/lib/python/site-packages",
+        "~/Library/pnpm/global",
+        "~/Projects",
+        "~/anaconda3/lib/python*/site-packages",
+        "~/dev",
+        "~/miniconda3/lib/python*/site-packages",
+        "~/repos",
+        "~/src",
+        "~/workspace"
     ],
-    "compromised": {
+    "system_paths": [
+        "/Library/Frameworks/Python.framework",
+        "/opt/homebrew/Cellar",
+        "/opt/homebrew/lib/node_modules",
+        "/opt/homebrew/lib/python*/site-packages",
+        "/usr/local/Cellar",
+        "/usr/local/lib/node_modules",
+        "/usr/local/lib/python*/site-packages"
+    ],
+    "libraries": {
         "python": {
-            "litellm": ["~1.82.8"]
+            "litellm": [
+                "~1.82.8"
+            ]
         },
         "npm": {
-            "axios": ["~1.14.1", "~0.30.4"]
+            "axios": [
+                "~1.14.1",
+                "~0.30.4"
+            ]
         }
     }
 }

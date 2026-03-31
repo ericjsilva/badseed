@@ -1,6 +1,6 @@
 [project]
 name = "badseed"
-version = "0.1.0"
+version = "0.1.1"
 description = "A high-performance, zero-dependency Python CLI tool to detect compromised supply chain libraries."
 authors = [{ name = "Eric Silva", email = "ericjsilva@gmail.com" }]
 requires-python = ">=3.10"

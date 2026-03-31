@@ -14,19 +14,20 @@ It was designed to run on MacOS but could be easily adapted to run on Windows or
 
 ## Configuration
 
-The tool uses a `config.json` file in the same directory as the script to configure default scan paths, system paths, and the list of compromised packages.
+The tool uses a `config.json` file in the same directory as the script to configure user scan paths, system paths, and the list of tracked libraries.
 
 ### Format
 ```json
 {
-    "default_paths": ["~/dev"],
+    "user_paths": [
+        "~/dev",
+        "~/Projects"
+    ],
     "system_paths": [
         "/usr/local/lib/node_modules",
-        "/opt/homebrew/lib/node_modules",
-        "/opt/homebrew/Cellar",
-        "/usr/local/Cellar"
+        "/opt/homebrew/lib/node_modules"
     ],
-    "compromised": {
+    "libraries": {
         "python": {
             "litellm": ["~1.82.8"]
         },
@@ -37,15 +38,26 @@ The tool uses a `config.json` file in the same directory as the script to config
 }
 ```
 
-- **`default_paths`**: Directories scanned by default when no paths are provided on the command line.
-- **`system_paths`**: Additional system-level directories to scan if they exist.
-- **`compromised`**: The list of compromised packages and their version specs, organized by ecosystem.
+- **`user_paths`**: Directories (usually within the user home) scanned by default.
+- **`system_paths`**: System-level directories (like `/usr/local/lib`) to scan if they exist.
+- **`libraries`**: The list of libraries to track and their version specs, organized by ecosystem (`python` or `npm`).
 
-## Target Compromises
+### Version Matching (Semver)
 
-Currently tracks the following high-risk versions:
-- **Python:** `litellm==1.82.8`
-- **npm:** `axios@1.14.1`, `axios@0.30.4`
+The `libraries` section supports standard semantic versioning operators:
+- `==1.2.3`: Exact match.
+- `>1.2.3`, `>=1.2.3`, `<1.2.3`, `<=1.2.3`: Range comparisons.
+- `~1.2.3`: Tilde match (e.g., `>=1.2.3 <1.3.0`).
+- `^1.2.3`: Caret match (e.g., `>=1.2.3 <2.0.0`).
+- `!=1.2.3`: Inequality.
+
+The tool automatically handles `v` prefixes (e.g., `v1.2.3` is matched as `1.2.3`) and strips common prefixes like `^` or `~` from detected versions before comparison.
+
+## Target Libraries
+
+Currently tracks known high-risk versions of:
+- **Python:** `litellm`
+- **npm:** `axios`
 
 ## Installation
 
@@ -56,10 +68,37 @@ The tool is a standalone Python script with no external dependencies (uses only 
 chmod +x badseed.py
 ```
 
+### Optional: Install `just`
+
+This project uses a `justfile` for common tasks. If you have [`just`](https://github.com/casey/just) installed, you can run the tool and development tasks easily.
+
+**macOS:**
+```bash
+brew install just
+```
+
+**Linux:**
+```bash
+# Most package managers have it
+sudo apt install just  # or equivalent
+```
+
 ## Usage
 
+### Using `just` (recommended)
+```bash
+# Basic scan
+just scan
+
+# Run linting and formatting
+just all
+
+# Run a quick test
+just test
+```
+
 ### Basic Scan
-Scan default development directories (`~/dev`), global package managers, and Homebrew:
+Scan defined development directories (`user_paths`), system directories (`system_paths`), global package managers, and Homebrew:
 ```bash
 ./badseed.py
 ```

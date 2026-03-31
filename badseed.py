@@ -27,7 +27,7 @@ def load_config() -> Dict:
 
 
 CONFIG = load_config()
-COMPROMISED_PACKAGES = CONFIG.get('compromised', {})
+TRACKED_LIBRARIES = CONFIG.get('libraries', {})
 
 
 @dataclass
@@ -63,7 +63,7 @@ class BadSeed:
             deps = data.get('dependencies', {})
             for name, info in deps.items():
                 version = info.get('version')
-                if self._is_compromised('npm', name, version):
+                if self._is_tracked('npm', name, version):
                     self._add_finding(Finding(name, version, 'Global NPM', 'npm'))
         except (subprocess.CalledProcessError, json.JSONDecodeError, FileNotFoundError):
             pass
@@ -77,7 +77,7 @@ class BadSeed:
             for pkg in data:
                 name = pkg.get('name')
                 version = pkg.get('version')
-                if self._is_compromised('python', name, version):
+                if self._is_tracked('python', name, version):
                     self._add_finding(Finding(name, version, 'Global Python', 'python'))
         except (subprocess.CalledProcessError, json.JSONDecodeError, FileNotFoundError):
             pass
@@ -91,7 +91,7 @@ class BadSeed:
                     name = parts[0]
                     versions = parts[1:]
                     for version in versions:
-                        if self._is_compromised('npm', name, version) or self._is_compromised('python', name, version):
+                        if self._is_tracked('npm', name, version) or self._is_tracked('python', name, version):
                             self._add_finding(Finding(name, version, 'Homebrew', 'homebrew'))
         except (subprocess.CalledProcessError, FileNotFoundError):
             pass
@@ -138,11 +138,11 @@ class BadSeed:
             self._seen.add(key)
             self.findings.append(finding)
 
-    def _is_compromised(self, ecosystem: str, name: str, version: str) -> bool:
+    def _is_tracked(self, ecosystem: str, name: str, version: str) -> bool:
         if not name:
             return False
         name = name.lower().strip()
-        targets = COMPROMISED_PACKAGES.get(ecosystem, {})
+        targets = TRACKED_LIBRARIES.get(ecosystem, {})
         if self.all_versions:
             return name in targets
         if not version:
@@ -208,7 +208,7 @@ class BadSeed:
                 for dep_type in ['dependencies', 'devDependencies']:
                     deps = data.get(dep_type, {})
                     for name, version in deps.items():
-                        if self._is_compromised('npm', name, version):
+                        if self._is_tracked('npm', name, version):
                             self._add_finding(Finding(name, version, str(path), 'npm'))
         except (json.JSONDecodeError, OSError):
             pass
@@ -221,12 +221,12 @@ class BadSeed:
                 for pkg_path, info in packages.items():
                     name = pkg_path.split('node_modules/')[-1] if 'node_modules/' in pkg_path else info.get('name')
                     version = info.get('version')
-                    if self._is_compromised('npm', name, version):
+                    if self._is_tracked('npm', name, version):
                         self._add_finding(Finding(name or 'unknown', version, str(path), 'npm'))
                 deps = data.get('dependencies', {})
                 for name, info in deps.items():
                     version = info.get('version')
-                    if self._is_compromised('npm', name, version):
+                    if self._is_tracked('npm', name, version):
                         self._add_finding(Finding(name, version, str(path), 'npm'))
         except (json.JSONDecodeError, OSError):
             pass
@@ -235,7 +235,7 @@ class BadSeed:
         try:
             with open(path) as f:
                 content = f.read()
-                for name in COMPROMISED_PACKAGES.get('npm', {}):
+                for name in TRACKED_LIBRARIES.get('npm', {}):
                     escaped = re.escape(name)
                     # Yarn v1
                     v1_matches = re.findall(
@@ -246,7 +246,7 @@ class BadSeed:
                         rf'"?{escaped}@npm:[^"]+\":\n\s+version:\s+([^\n\s]+)', content, re.MULTILINE
                     )
                     for version in v1_matches + v2_matches:
-                        if self._is_compromised('npm', name, version):
+                        if self._is_tracked('npm', name, version):
                             self._add_finding(Finding(name, version, str(path), 'npm'))
         except OSError:
             pass
@@ -264,13 +264,13 @@ class BadSeed:
                         name, version = match.groups()
                         name = name.split('[')[0].strip()
                         version = version.split(';')[0].strip()
-                        if self._is_compromised('python', name, version):
+                        if self._is_tracked('python', name, version):
                             self._add_finding(Finding(name, version, str(path), 'python'))
                     elif '==' in line:
                         name, version = line.split('==', 1)
                         name = name.split('[')[0].strip()
                         version = version.split(';')[0].strip()
-                        if self._is_compromised('python', name, version):
+                        if self._is_tracked('python', name, version):
                             self._add_finding(Finding(name, version, str(path), 'python'))
         except OSError:
             pass
@@ -281,7 +281,7 @@ class BadSeed:
                 content = f.read()
                 packages = re.findall(r'\[\[package\]\]\nname = "(.*?)"\nversion = "(.*?)"', content, re.MULTILINE)
                 for name, version in packages:
-                    if self._is_compromised('python', name, version):
+                    if self._is_tracked('python', name, version):
                         self._add_finding(Finding(name, version, str(path), 'python'))
         except OSError:
             pass
@@ -294,13 +294,13 @@ class BadSeed:
         try:
             with open(path) as f:
                 content = f.read()
-                for name in COMPROMISED_PACKAGES.get('python', {}):
+                for name in TRACKED_LIBRARIES.get('python', {}):
                     escaped = re.escape(name)
                     matches = re.findall(
                         rf'pypi/{escaped}:\s*\n\s+version:\s+([^\s\n]+)', content, re.MULTILINE
                     )
                     for version in matches:
-                        if self._is_compromised('python', name, version):
+                        if self._is_tracked('python', name, version):
                             self._add_finding(Finding(name, version, str(path), 'python'))
         except OSError:
             pass
@@ -312,12 +312,12 @@ class BadSeed:
                 # Poetry-style: name = "version" or name = { version = "..." }
                 matches = re.findall(r'([a-zA-Z0-9_-]+)\s*=\s*(?:"|{ version = ")(.*?)(?:"|")(\s*[,}])?', content)
                 for name, version, *_ in matches:
-                    if self._is_compromised('python', name, version):
+                    if self._is_tracked('python', name, version):
                         self._add_finding(Finding(name, version, str(path), 'python'))
                 # PEP 621-style: dependencies = ["litellm>=1.82.8", ...]
                 pep621 = re.findall(r'"([a-zA-Z0-9_-]+)\s*([<>~=!][^"]*?)"', content)
                 for name, version in pep621:
-                    if self._is_compromised('python', name, version):
+                    if self._is_tracked('python', name, version):
                         self._add_finding(Finding(name, version, str(path), 'python'))
         except OSError:
             pass
@@ -330,13 +330,13 @@ class BadSeed:
                     pkgs = data.get(section, {})
                     for name, info in pkgs.items():
                         version = info.get('version', '').strip()
-                        if self._is_compromised('python', name, version):
+                        if self._is_tracked('python', name, version):
                             self._add_finding(Finding(name, version, str(path), 'python'))
         except (json.JSONDecodeError, OSError):
             pass
 
     def _scan_node_modules(self, nm_path: Path):
-        for ecosystem, targets in COMPROMISED_PACKAGES.items():
+        for ecosystem, targets in TRACKED_LIBRARIES.items():
             if ecosystem != 'npm':
                 continue
             for name in targets:
@@ -346,7 +346,7 @@ class BadSeed:
                         with open(pkg_json) as f:
                             data = json.load(f)
                             version = data.get('version')
-                            if self._is_compromised('npm', name, version):
+                            if self._is_tracked('npm', name, version):
                                 self._add_finding(Finding(name, version, str(pkg_json), 'npm'))
                     except (json.JSONDecodeError, OSError):
                         pass
@@ -363,7 +363,7 @@ class BadSeed:
                         name_ver = dist.stem.split('-')
                         if len(name_ver) >= 2:
                             name, version = name_ver[0], name_ver[1]
-                            if self._is_compromised('python', name, version):
+                            if self._is_tracked('python', name, version):
                                 self._add_finding(Finding(name, version, str(site_packages), 'python'))
                     except (IndexError, ValueError):
                         pass
@@ -383,15 +383,15 @@ class BadSeed:
 
 def main():
     parser = argparse.ArgumentParser(description='BadSeed: Scan for compromised libraries in your supply chain.')
-    default_paths = list(CONFIG.get('default_paths', ['~/dev']))
+    user_paths = list(CONFIG.get('user_paths', ['~/dev']))
     for p in CONFIG.get('system_paths', []):
         expanded = os.path.expanduser(p)
         matched = glob.glob(expanded)
         if matched:
-            default_paths.extend(matched)
+            user_paths.extend(matched)
         elif os.path.exists(expanded):
-            default_paths.append(expanded)
-    parser.add_argument('paths', nargs='*', default=default_paths, help='Directories to scan recursively')
+            user_paths.append(expanded)
+    parser.add_argument('paths', nargs='*', default=user_paths, help='Directories to scan recursively')
     parser.add_argument('--output', '-o', help='Output CSV file path')
     parser.add_argument('--no-global', action='store_true', help='Skip global/system level scans')
     parser.add_argument('--all-versions', '-a', action='store_true', help='Find all uses of tracked libraries regardless of version')
